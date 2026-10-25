@@ -1,0 +1,26 @@
+[package]
+tool = "kryon"
+name = "auth"
+entry = "src/auth.zi"
+module_roots = ["src", "tests"]
+
+[toolchain]
+git = "https://github.com/ziranlang/ziran.git"
+ref = "master"
+
+[dependencies.kryon]
+git = "https://github.com/kryonlabs/kryon.git"
+ref = "master"
+
+[dependencies.mingcute]
+git = "https://github.com/kryonlabs/mingcute.git"
+ref = "master"
+
+[dependencies.crypto]
+git = "https://github.com/ziranlang/crypto.git"
+ref = "master"
+
+[exports]
+auth = "src/auth.zi"
+totp = "src/totp.zi"
+exports = "src/exports.zi"

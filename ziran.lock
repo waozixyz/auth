@@ -1,0 +1,47 @@
+{
+  "format": 1,
+  "packages": [
+    {
+      "commit": "fafa2cea97d0cb379d832086ba45a989fa6f9c8e",
+      "dependencies": {},
+      "id": "p5a77c9c35110e925",
+      "name": "raylib",
+      "ref": "fafa2cea97d0cb379d832086ba45a989fa6f9c8e",
+      "source": true,
+      "url": "https://github.com/raysan5/raylib.git"
+    },
+    {
+      "commit": "fade061f2e01f635ef412a63453e0c30fe6185ed",
+      "dependencies": {"raylib": "p5a77c9c35110e925"},
+      "id": "p8fbb5bc439b52d33",
+      "name": "kryon",
+      "ref": "master",
+      "url": "https://github.com/kryonlabs/kryon.git"
+    },
+    {
+      "commit": "d11e915b5ee809b1f76b35850dda71f63ec9e09c",
+      "dependencies": {},
+      "id": "p9f270a7aabc9904e",
+      "name": "crypto",
+      "ref": "master",
+      "url": "https://github.com/ziranlang/crypto.git"
+    },
+    {
+      "commit": "9cc6872f75447c3a24c16764f9829d0f58751cb0",
+      "dependencies": {},
+      "id": "pe1027b9d16704793",
+      "name": "mingcute",
+      "ref": "master",
+      "url": "https://github.com/kryonlabs/mingcute.git"
+    }
+  ],
+  "root": {
+    "dependencies": {"crypto": "p9f270a7aabc9904e", "kryon": "p8fbb5bc439b52d33", "mingcute": "pe1027b9d16704793"},
+    "name": "auth"
+  },
+  "toolchain": {
+    "commit": "3c23e5d084e31ad35c3e3e671cba06c985981461",
+    "ref": "master",
+    "url": "https://github.com/ziranlang/ziran.git"
+  }
+}
