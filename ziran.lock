@@ -11,12 +11,13 @@
       "url": "https://github.com/raysan5/raylib.git"
     },
     {
-      "commit": "fade061f2e01f635ef412a63453e0c30fe6185ed",
-      "dependencies": {"raylib": "p5a77c9c35110e925"},
-      "id": "p8fbb5bc439b52d33",
-      "name": "kryon",
-      "ref": "master",
-      "url": "https://github.com/kryonlabs/kryon.git"
+      "commit": "1844042d1ca751e62e61df7617dba19c98588339",
+      "dependencies": {},
+      "id": "p651a2c7a393977c0",
+      "name": "libwebp",
+      "ref": "1844042d1ca751e62e61df7617dba19c98588339",
+      "source": true,
+      "url": "https://github.com/webmproject/libwebp.git"
     },
     {
       "commit": "d11e915b5ee809b1f76b35850dda71f63ec9e09c",
@@ -25,6 +26,14 @@
       "name": "crypto",
       "ref": "master",
       "url": "https://github.com/ziranlang/crypto.git"
+    },
+    {
+      "commit": "7dc62902389544bf8d1fb3a159152cbd3b889c78",
+      "dependencies": {"libwebp": "p651a2c7a393977c0", "raylib": "p5a77c9c35110e925"},
+      "id": "pcec085fc76d6fd7b",
+      "name": "kryon",
+      "ref": "7dc62902389544bf8d1fb3a159152cbd3b889c78",
+      "url": "https://github.com/kryonlabs/kryon.git"
     },
     {
       "commit": "9cc6872f75447c3a24c16764f9829d0f58751cb0",
@@ -36,7 +45,7 @@
     }
   ],
   "root": {
-    "dependencies": {"crypto": "p9f270a7aabc9904e", "kryon": "p8fbb5bc439b52d33", "mingcute": "pe1027b9d16704793"},
+    "dependencies": {"crypto": "p9f270a7aabc9904e", "kryon": "pcec085fc76d6fd7b", "mingcute": "pe1027b9d16704793"},
     "name": "auth"
   },
   "toolchain": {
