@@ -1,30 +1,25 @@
+TextField :: #import "kryon/text_field";
+Scroll :: #import "kryon/scroll";
+Box :: #import "kryon/box";
+Text :: #import "kryon/text";
+Button :: #import "kryon/button";
 // Auth: two-factor sign-in codes. Each account is a synced record holding
 // its otpauth link, so it follows the owner's Werkzeug account to their
 // other devices; secrets are never shown again after adding.
-#import "session"
-#import "geometry"
-#import "drawing_props"
-#import "text_props"
-#import "text_align"
-#import "text_widget"
-#import "text_input_props"
-#import "text_field_widget"
-#import "button_props"
-#import "button_widget"
-#import "control_props"
-#import "box_props"
-#import "box_widget"
-#import "scroll_props"
-#import "scroll_widget"
-#import "tree"
-#import "text_buffer"
-#import "number_text"
+#import "kryon/session"
+#import "kryon/geometry"
+#import "kryon/drawing_props"
+#import "kryon/text_align"
+#import "kryon/control_props"
+#import "kryon/tree"
+#import "std/text_buffer"
+#import "std/number_text"
 #import "kryon/app_context"
 #import "kryon/app_protocol"
 #import "totp"
 #import "exports"
-Icon :: #import "mingcute_regular_shield";
-Edit :: #import "mingcute_regular_edit_2";
+Icon :: #import "mingcute/mingcute_regular_shield";
+Edit :: #import "mingcute/mingcute_regular_edit_2";
 
 ACCOUNT_LIMIT :: 128
 LIST_LIMIT :: 65536
@@ -320,21 +315,21 @@ GroupedCode :: (code: string, output: []u8) -> string {
 }
 
 Label :: (key: u64, text: string, bounds: Rectangle, font: s32) {
-    Text(session, TextProps.{.key = key, .bounds = bounds, .text = text, .font = font,
-            .wrap = TextWrap.TextWrapEllipsis})
+    Text.Draw(session, Text.Props.{.key = key, .bounds = bounds, .text = text, .size = font,
+            .wrap = Text.Wrap.TextWrapEllipsis})
 }
 
 Action :: (id: s32, label: string, bounds: Rectangle, accent: bool) -> bool {
-    props := ButtonProps.{.key = cast(u64)id, .id = id, .bounds = bounds, .label = label,
+    props := Button.Props.{.key = cast(u64)id, .id = id, .bounds = bounds, .label = label,
         .tone = ButtonTone.ButtonToneNeutral, .emphasis = ButtonEmphasis.ButtonEmphasisSoft}
     if accent {
         props.tone = ButtonTone.ButtonToneAccent
         props.emphasis = ButtonEmphasis.ButtonEmphasisFilled
     }
-    return Button(session, props) != 0
+    return Button.Draw(session, props) != 0
 }
 
-ApplyEdit :: (buffer: []u8, edit: TextFieldEdit) {
+ApplyEdit :: (buffer: []u8, edit: TextField.Edit) {
     if !edit.changed {
         return
     }
@@ -378,9 +373,9 @@ ApplyEdit :: (buffer: []u8, edit: TextFieldEdit) {
 
 Field :: (id: s32, label: string, placeholder: string, buffer: []u8, bounds: Rectangle, secure: bool) {
     state := *fields[id]
-    edit: TextFieldEdit
+    edit: TextField.Edit
     {
-        props := TextFieldProps.{.key = cast(u64)(500 + id), .focus_id = 500 + id, .bounds = bounds,
+        props := TextField.Props.{.key = cast(u64)(500 + id), .focus_id = 500 + id, .bounds = bounds,
             .label = label, .placeholder = placeholder, .value = TextUntilNul(buffer),
             .cursor = state.cursor, .anchor = state.anchor, .scroll_x = state.scroll_x,
             .focused = focused == id, .max_bytes = cast(s32)buffer.count - 1,
@@ -392,7 +387,7 @@ Field :: (id: s32, label: string, placeholder: string, buffer: []u8, bounds: Rec
         if focused == id {
             props.input = AppFieldInput()
         }
-        result := TextField(session, props)
+        result := TextField.Draw(session, props)
         state.cursor = result.cursor
         state.anchor = result.anchor
         state.scroll_x = result.scroll_x
@@ -442,9 +437,9 @@ DrawRow :: (index: s32, x: float32, y: float32, inner: float32, row: float32) {
     fraction := cast(float32)(remaining / period)
     surface := ifx AppDark() then Color.{28, 28, 28, 255} else Color.{242, 240, 245, 255}
     progress := ifx fraction > 0.5 then Color.{159, 53, 232, 255} else Color.{238, 145, 48, 255}
-    Box(session, BoxProps.{.key = cast(u64)(1000 + index), .bounds = Rectangle.{x, y, inner, row - 8.0},
+    Box.Draw(session, Box.Props.{.key = cast(u64)(1000 + index), .bounds = Rectangle.{x, y, inner, row - 8.0},
             .fill = surface, .radius = 4.0})
-    Box(session, BoxProps.{.key = cast(u64)(7000 + index),
+    Box.Draw(session, Box.Props.{.key = cast(u64)(7000 + index),
             .bounds = Rectangle.{x, y, inner * fraction, 3.0}, .fill = progress})
     title := TextUntilNul(account.issuer[:])
     subtitle := TextUntilNul(account.name[:])
@@ -454,9 +449,9 @@ DrawRow :: (index: s32, x: float32, y: float32, inner: float32, row: float32) {
     }
     text_width := inner - 64.0
     Label(cast(u64)(2000 + index), title, Rectangle.{x + 20.0, y + 14.0, text_width, 22.0}, 16)
-    Text(session, TextProps.{.key = cast(u64)(3000 + index), .text = subtitle,
-            .bounds = Rectangle.{x + 20.0, y + 38.0, text_width, 18.0}, .font = 12,
-            .disabled = true, .wrap = TextWrap.TextWrapEllipsis})
+    Text.Draw(session, Text.Props.{.key = cast(u64)(3000 + index), .text = subtitle,
+            .bounds = Rectangle.{x + 20.0, y + 38.0, text_width, 18.0}, .size = 12,
+            .disabled = true, .wrap = Text.Wrap.TextWrapEllipsis})
     code := Code(index, cast(s64)now)
     current_text: [16]u8
     next_text: [16]u8
@@ -464,23 +459,23 @@ DrawRow :: (index: s32, x: float32, y: float32, inner: float32, row: float32) {
     next := GroupedCode(TextUntilNul(codes[index].next[:]), next_text[:])
     code_width := (inner - 40.0) * 0.6
     code_bounds := Rectangle.{x + 20.0, y + 70.0, code_width, 38.0}
-    if Button(session, ButtonProps.{.key = cast(u64)(4000 + index), .id = 4000 + index,
+    if Button.Draw(session, Button.Props.{.key = cast(u64)(4000 + index), .id = 4000 + index,
             .bounds = Rectangle.{x, y, inner, row - 8.0}, .label = "Copy current code", .invisible = true}) != 0 {
         unused ClipboardCopy(code, CODE_CLEAR_SECONDS)
     }
     Label(cast(u64)(8000 + index), current, code_bounds, 24)
     preview := Rectangle.{x + 20.0 + code_width, y + 72.0, inner - 40.0 - code_width, 16.0}
-    Text(session, TextProps.{.key = cast(u64)(5000 + index), .text = "next", .bounds = preview,
-            .font = 12, .disabled = true, .align = TextAlign.TextAlignEnd})
+    Text.Draw(session, Text.Props.{.key = cast(u64)(5000 + index), .text = "next", .bounds = preview,
+            .size = 12, .disabled = true, .align = TextAlign.TextAlignEnd})
     preview.y += 18.0
     preview.height = 20.0
-    Text(session, TextProps.{.key = cast(u64)(9000 + index), .text = next, .bounds = preview,
-            .font = 14, .disabled = true, .align = TextAlign.TextAlignEnd})
-    edit := ButtonProps.{.key = cast(u64)(6000 + index), .id = 6000 + index, .label = "Edit",
+    Text.Draw(session, Text.Props.{.key = cast(u64)(9000 + index), .text = next, .bounds = preview,
+            .size = 14, .disabled = true, .align = TextAlign.TextAlignEnd})
+    edit := Button.Props.{.key = cast(u64)(6000 + index), .id = 6000 + index, .label = "Edit",
         .bounds = Rectangle.{x + inner - 40.0, y + 10.0, 32.0, 32.0},
         .icon_shape = Edit.Shape, .icon_only = true,
         .tone = ButtonTone.ButtonToneNeutral, .emphasis = ButtonEmphasis.ButtonEmphasisGhost}
-    if Button(session, edit) != 0 {
+    if Button.Draw(session, edit) != 0 {
         OpenEdit(index)
     }
 }
@@ -499,7 +494,7 @@ ListView :: (area: Rectangle, left: float32, width: float32) {
             Rectangle.{left, top, width, 24.0}, 14)
     }
     row: float32 = 136.0
-    scroll := Scroll(session, ScrollProps.{.key = cast(u64)12, .bounds = Rectangle.{left, top, width, height},
+    scroll := Scroll.Draw(session, Scroll.Props.{.key = cast(u64)12, .bounds = Rectangle.{left, top, width, height},
             .content_height = cast(s32)(cast(float32)account_count * row), .scroll_offset = list_scroll,
             .scale = 1.0})
     list_scroll = scroll.scroll_offset
@@ -605,14 +600,14 @@ EditView :: (area: Rectangle, left: float32, width: float32) {
         return
     }
     y += 64.0
-    remove := ButtonProps.{.key = cast(u64)43, .id = 43, .bounds = Rectangle.{left, y, width, 40.0},
+    remove := Button.Props.{.key = cast(u64)43, .id = 43, .bounds = Rectangle.{left, y, width, 40.0},
         .label = ifx remove_pending then "Tap again to remove" else "Remove account",
         .tone = ButtonTone.ButtonToneNeutral, .emphasis = ButtonEmphasis.ButtonEmphasisSoft}
     if remove_pending {
         remove.tone = ButtonTone.ButtonToneDanger
         remove.emphasis = ButtonEmphasis.ButtonEmphasisFilled
     }
-    if Button(session, remove) == 0 {
+    if Button.Draw(session, remove) == 0 {
         return
     }
     if !remove_pending {

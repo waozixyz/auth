@@ -1,12 +1,12 @@
+Box :: #import "kryon/box";
+Text :: #import "kryon/text";
+Button :: #import "kryon/button";
 // In-memory hosted widgets and clipboard; all values are public fixtures.
-#import "session"
-#import "geometry"
-#import "button_props"
-#import "box_props"
-#import "text_props"
-#import "text_buffer"
-#import "c_string"
-buttons: [2]ButtonProps;
+#import "kryon/session"
+#import "kryon/geometry"
+#import "std/text_buffer"
+#import "std/c_string"
+buttons: [2]Button.Props;
 button_count: s32;
 activated: s32;
 now: float64 = 59.0;
@@ -14,14 +14,14 @@ copied: [16]u8;
 clear_seconds: s32;
 next: [16]u8;
 #program_export
-ButtonHostedHost :: (session: Session, props: ButtonProps) -> s32 {
+ButtonHostedHost :: (session: Session, props: Button.Props) -> s32 {
     if button_count < 2 { buttons[button_count] = props; button_count += 1 }
     return ifx activated == props.id then 1 else 0
 }
 #program_export
-BoxHostedHost :: (session: Session, props: BoxProps) -> s32 { return 0 }
+BoxHostedHost :: (session: Session, props: Box.Props) -> s32 { return 0 }
 #program_export
-TextHostedHost :: (session: Session, props: TextProps) {
+TextHostedHost :: (session: Session, props: Text.Props) {
     if props.key == cast(u64)9000 { unused CopyCString(props.text, next[:]) }
 }
 #program_export

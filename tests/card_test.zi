@@ -1,11 +1,11 @@
+Button :: #import "kryon/button";
 // Public RFC 6238 fixture only. Exercise the actual card's code cache at
 // rollover, skipped steps and a backwards clock; display spaces never enter it.
 Auth :: #import "auth";
 Host :: #import "card_host";
 #import "totp"
-#import "text_buffer"
-#import "button_props"
-#import "geometry"
+#import "std/text_buffer"
+#import "kryon/geometry"
 
 #program_export
 Run :: () -> s32 {
