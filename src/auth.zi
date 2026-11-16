@@ -465,7 +465,7 @@ DrawRow :: (index: s32, x: float32, y: float32, inner: float32, row: float32) {
     code_width := (inner - 40.0) * 0.6
     code_bounds := Rectangle.{x + 20.0, y + 70.0, code_width, 38.0}
     if Button(session, ButtonProps.{.key = cast(u64)(4000 + index), .id = 4000 + index,
-            .bounds = code_bounds, .label = current, .invisible = true}) != 0 {
+            .bounds = Rectangle.{x, y, inner, row - 8.0}, .label = "Copy current code", .invisible = true}) != 0 {
         unused ClipboardCopy(code, CODE_CLEAR_SECONDS)
     }
     Label(cast(u64)(8000 + index), current, code_bounds, 24)

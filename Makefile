@@ -17,7 +17,7 @@ test: app
 		$(ZIRAN) bundle --root . $(PATHS) --entry $${name}_test:Run -o build/$$name.zx tests/$${name}_test.zi && \
 		test "$$($(ZIRAN) run build/$$name.zx)" = 0 || exit 1; \
 	done
-	$(ZIRAN) bundle --root . $(PATHS) $(UI_PATHS) --entry card_test:Run -o build/card.zx tests/card_test.zi
+	$(ZIRAN) bundle --root . $(PATHS) $(UI_PATHS) --module-path tests --module-path $(KRYON)/src/backend --bind button_widget:ButtonHostedHost=card_host:ButtonHostedHost --bind box_widget:BoxHostedHost=card_host:BoxHostedHost --bind text_widget:TextHostedHost=card_host:TextHostedHost --bind app_context:AppNowHost=card_host:AppNowHost --bind app_context:AppDarkHost=card_host:AppDarkHost --bind app_context:ClipboardCopyHost=card_host:ClipboardCopyHost --entry card_test:Run -o build/card.zx tests/card_test.zi
 	test "$$($(ZIRAN) run build/card.zx)" = 0
 	@echo 'Auth: RFC 6238 codes, Base32, links and authenticator exports passed'
 

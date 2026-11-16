@@ -1,0 +1,48 @@
+// In-memory hosted widgets and clipboard; all values are public fixtures.
+#import "session"
+#import "geometry"
+#import "button_props"
+#import "box_props"
+#import "text_props"
+#import "text_buffer"
+#import "c_string"
+buttons: [2]ButtonProps;
+button_count: s32;
+activated: s32;
+now: float64 = 59.0;
+copied: [16]u8;
+clear_seconds: s32;
+next: [16]u8;
+#program_export
+ButtonHostedHost :: (session: Session, props: ButtonProps) -> s32 {
+    if button_count < 2 { buttons[button_count] = props; button_count += 1 }
+    return ifx activated == props.id then 1 else 0
+}
+#program_export
+BoxHostedHost :: (session: Session, props: BoxProps) -> s32 { return 0 }
+#program_export
+TextHostedHost :: (session: Session, props: TextProps) {
+    if props.key == cast(u64)9000 { unused CopyCString(props.text, next[:]) }
+}
+#program_export
+AppNowHost :: () -> float64 { return now }
+#program_export
+AppDarkHost :: () -> bool { return true }
+#program_export
+ClipboardCopyHost :: (value: string, seconds: s32) -> bool {
+    unused CopyCString(value, copied[:])
+    clear_seconds = seconds
+    return true
+}
+// Retained hosts route a pointer to the last overlapping interactive widget.
+Hit :: (x: float32, y: float32) -> s32 {
+    index := button_count - 1
+    while index >= 0 {
+        bounds := buttons[index].bounds
+        if x >= bounds.x && x < bounds.x + bounds.width && y >= bounds.y && y < bounds.y + bounds.height {
+            return buttons[index].id
+        }
+        index -= 1
+    }
+    return 0
+}

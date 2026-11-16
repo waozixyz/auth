@@ -1,8 +1,11 @@
 // Public RFC 6238 fixture only. Exercise the actual card's code cache at
 // rollover, skipped steps and a backwards clock; display spaces never enter it.
 Auth :: #import "auth";
+Host :: #import "card_host";
 #import "totp"
 #import "text_buffer"
+#import "button_props"
+#import "geometry"
 
 #program_export
 Run :: () -> s32 {
@@ -28,6 +31,31 @@ Run :: () -> s32 {
     Auth.Code(0, 59) != "287082" || TextUntilNul(Auth.codes[0].next[:]) != "359152" {
         return 5
     }
+    // Exercise the actual row, using hosted widget/clipboard effects only.
+    Auth.DrawRow(0, 10.0, 20.0, 380.0, 136.0)
+    if Host.button_count != 2 || Host.buttons[0].label != "Copy current code" ||
+    Host.buttons[1].label != "Edit" || !Host.buttons[1].icon_only ||
+    TextUntilNul(Host.next[:]) != "359 152" { return 7 }
+    points: [6]Rectangle = .[Rectangle.{11.0, 21.0}, Rectangle.{60.0, 45.0},
+    Rectangle.{60.0, 68.0}, Rectangle.{60.0, 110.0}, Rectangle.{340.0, 120.0}, Rectangle.{388.0, 146.0}]
+    for point: points {
+        Host.activated = Host.Hit(point.x, point.y)
+        if Host.activated != 4000 { return 8 }
+        Host.button_count = 0
+        Auth.DrawRow(0, 10.0, 20.0, 380.0, 136.0)
+        if TextUntilNul(Host.copied[:]) != "287082" || Host.clear_seconds != Auth.CODE_CLEAR_SECONDS { return 9 }
+    }
+    // Next preview taps still copy the CURRENT code after a period rollover.
+    Host.now = 60.0
+    Host.button_count = 0
+    Auth.DrawRow(0, 10.0, 20.0, 380.0, 136.0)
+    if TextUntilNul(Host.copied[:]) != "359152" || TextUntilNul(Host.next[:]) != "969 429" { return 10 }
+    Host.activated = Host.Hit(365.0, 45.0)
+    if Host.activated != 6000 { return 11 }
+    Host.copied = .{}
+    Host.button_count = 0
+    Auth.DrawRow(0, 10.0, 20.0, 380.0, 136.0)
+    if Auth.view != Auth.VIEW_EDIT || Host.copied[0] != cast(u8)0 { return 12 }
     // Non-default periods and digits must preview the next *account* step.
     account.period = 60
     account.digits = 8
