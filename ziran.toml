@@ -6,11 +6,11 @@ module_roots = ["src", "tests"]
 
 [toolchain]
 git = "https://github.com/ziranlang/ziran.git"
-ref = "ee68a8b268b87f3ee61f9f6f91f22d1206900f6f"
+ref = "d17c7aa1e093066ef03f307a45f6966dd9b29d4b"
 
 [dependencies.kryon]
 git = "https://github.com/kryonlabs/kryon.git"
-ref = "0dea8bc28bd61b13dadabf9efdf137bd530c5d45"
+ref = "f123e8ba3e3a9d77e059004564f0189558d4f652"
 
 [dependencies.mingcute]
 git = "https://github.com/kryonlabs/mingcute.git"
