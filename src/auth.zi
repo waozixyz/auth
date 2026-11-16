@@ -3,7 +3,9 @@
 // other devices; secrets are never shown again after adding.
 #import "session"
 #import "geometry"
+#import "drawing_props"
 #import "text_props"
+#import "text_align"
 #import "text_widget"
 #import "text_input_props"
 #import "text_field_widget"
@@ -48,6 +50,7 @@ FieldState :: struct {
 CachedCode :: struct {
     step: s64
     code: [12]u8
+    next: [12]u8
 }
 
 accounts: [ACCOUNT_LIMIT]Account;
@@ -286,20 +289,34 @@ RemoveAccount :: (index: s32) -> bool {
     return true
 }
 
-Unix :: () -> s64 {
-    return cast(s64)AppNow()
-}
-
-// The current code, computed once per time step.
-Code :: (index: s32) -> string {
+// Cache both codes together using one clock sample for the whole card.
+Code :: (index: s32, now: s64) -> string {
     account := *accounts[index]
-    step := Unix() / cast(s64)account.period
+    step := now / cast(s64)account.period
     if codes[index].step != step {
+        if codes[index].step + 1 == step && codes[index].next[0] != cast(u8)0 {
+            codes[index].code = codes[index].next
+        } else {
+            unused CodeAt(account.kind, account.key[:], account.key_count, account.digits,
+                cast(u64)step, codes[index].code[:])
+        }
+        unused CodeAt(account.kind, account.key[:], account.key_count, account.digits,
+            cast(u64)(step + 1), codes[index].next[:])
         codes[index].step = step
-        unused CodeNow(account.kind, account.key[:], account.key_count, account.digits, account.period,
-            Unix(), codes[index].code[:])
     }
     return TextUntilNul(codes[index].code[:])
+}
+
+// Spacing is presentation only: the clipboard keeps the original digits.
+GroupedCode :: (code: string, output: []u8) -> string {
+    used: s64 = 0
+    for index: 0..code.count - 1 {
+        if index > 0 && index % 3 == 0 {
+            used = AppendText(output, used, " ")
+        }
+        used = AppendText(output, used, code[index:index + 1])
+    }
+    return TextView(output[0:used])
 }
 
 Label :: (key: u64, text: string, bounds: Rectangle, font: s32) {
@@ -415,38 +432,54 @@ CloseEdit :: () {
     view = VIEW_LIST
 }
 
-// One account: its name, current code (tap to copy), the seconds left and
-// Edit.
+// Ente-style card: countdown line, service/account, current and next codes.
 DrawRow :: (index: s32, x: float32, y: float32, inner: float32, row: float32) {
     account := *accounts[index]
+    now := AppNow()
+    period := cast(float64)account.period
+    step := cast(s64)now / cast(s64)account.period
+    remaining := period - (now - cast(float64)step * period)
+    fraction := cast(float32)(remaining / period)
+    surface := ifx AppDark() then Color.{28, 28, 28, 255} else Color.{242, 240, 245, 255}
+    progress := ifx fraction > 0.5 then Color.{159, 53, 232, 255} else Color.{238, 145, 48, 255}
     Box(session, BoxProps.{.key = cast(u64)(1000 + index), .bounds = Rectangle.{x, y, inner, row - 8.0},
-            .radius = 10.0})
+            .fill = surface, .radius = 4.0})
+    Box(session, BoxProps.{.key = cast(u64)(7000 + index),
+            .bounds = Rectangle.{x, y, inner * fraction, 3.0}, .fill = progress})
     title := TextUntilNul(account.issuer[:])
     subtitle := TextUntilNul(account.name[:])
     if title == "" {
         title = subtitle
         subtitle = ""
     }
-    text_width := inner - 210.0
-    Label(cast(u64)(2000 + index), title, Rectangle.{x + 12.0, y + 12.0, text_width, 22.0}, 16)
-    Label(cast(u64)(3000 + index), subtitle, Rectangle.{x + 12.0, y + 38.0, text_width, 18.0}, 12)
-    code := Code(index)
-    if Action(4000 + index, code, Rectangle.{x + inner - 196.0, y + 12.0, 140.0, 44.0}, false) {
-        if ClipboardCopy(code, CODE_CLEAR_SECONDS) {
-            SetStatus("Code copied; it clears in 30 seconds")
-        } else {
-            SetStatus("The clipboard is unavailable")
-        }
+    text_width := inner - 64.0
+    Label(cast(u64)(2000 + index), title, Rectangle.{x + 20.0, y + 14.0, text_width, 22.0}, 16)
+    Text(session, TextProps.{.key = cast(u64)(3000 + index), .text = subtitle,
+            .bounds = Rectangle.{x + 20.0, y + 38.0, text_width, 18.0}, .font = 12,
+            .disabled = true, .wrap = TextWrap.TextWrapEllipsis})
+    code := Code(index, cast(s64)now)
+    current_text: [16]u8
+    next_text: [16]u8
+    current := GroupedCode(code, current_text[:])
+    next := GroupedCode(TextUntilNul(codes[index].next[:]), next_text[:])
+    code_width := (inner - 40.0) * 0.6
+    code_bounds := Rectangle.{x + 20.0, y + 70.0, code_width, 38.0}
+    if Button(session, ButtonProps.{.key = cast(u64)(4000 + index), .id = 4000 + index,
+            .bounds = code_bounds, .label = current, .invisible = true}) != 0 {
+        unused ClipboardCopy(code, CODE_CLEAR_SECONDS)
     }
-    remaining := cast(s64)account.period - Unix() % cast(s64)account.period
-    number: [24]u8
-    // The seconds left, centred beside the code.
-    Label(cast(u64)(5000 + index), FormatInteger(remaining, number[:]),
-        Rectangle.{x + inner - 52.0, y + 27.0, 16.0, 18.0}, 12)
+    Label(cast(u64)(8000 + index), current, code_bounds, 24)
+    preview := Rectangle.{x + 20.0 + code_width, y + 72.0, inner - 40.0 - code_width, 16.0}
+    Text(session, TextProps.{.key = cast(u64)(5000 + index), .text = "next", .bounds = preview,
+            .font = 12, .disabled = true, .align = TextAlign.TextAlignEnd})
+    preview.y += 18.0
+    preview.height = 20.0
+    Text(session, TextProps.{.key = cast(u64)(9000 + index), .text = next, .bounds = preview,
+            .font = 14, .disabled = true, .align = TextAlign.TextAlignEnd})
     edit := ButtonProps.{.key = cast(u64)(6000 + index), .id = 6000 + index, .label = "Edit",
-        .bounds = Rectangle.{x + inner - 40.0, y + 16.0, 36.0, 36.0},
+        .bounds = Rectangle.{x + inner - 40.0, y + 10.0, 32.0, 32.0},
         .icon_shape = Edit.Shape, .icon_only = true,
-        .tone = ButtonTone.ButtonToneNeutral, .emphasis = ButtonEmphasis.ButtonEmphasisSoft}
+        .tone = ButtonTone.ButtonToneNeutral, .emphasis = ButtonEmphasis.ButtonEmphasisGhost}
     if Button(session, edit) != 0 {
         OpenEdit(index)
     }
@@ -460,12 +493,12 @@ ListView :: (area: Rectangle, left: float32, width: float32) {
         return
     }
     top := area.y + 64.0
-    height := area.height - 100.0
+    height := area.height - 72.0
     if account_count == 0 {
         Label(cast(u64)11, "No accounts yet. Add one with its otpauth link or secret key.",
             Rectangle.{left, top, width, 24.0}, 14)
     }
-    row: float32 = 76.0
+    row: float32 = 136.0
     scroll := Scroll(session, ScrollProps.{.key = cast(u64)12, .bounds = Rectangle.{left, top, width, height},
             .content_height = cast(s32)(cast(float32)account_count * row), .scroll_offset = list_scroll,
             .scale = 1.0})
@@ -531,6 +564,7 @@ AddView :: (area: Rectangle, left: float32, width: float32) {
         view = VIEW_LIST
         SetStatus("")
     }
+    Label(cast(u64)30, TextUntilNul(status[:]), Rectangle.{left, y + 48.0, width, 36.0}, 12)
 }
 
 // Adds the accounts in the links field, then forgets the field.
@@ -556,6 +590,7 @@ EditView :: (area: Rectangle, left: float32, width: float32) {
     y += 24.0
     Field(FIELD_SITES, "Websites", "github.com", sites[:], Rectangle.{left, y, width, 40.0}, false)
     y += 56.0
+    Label(cast(u64)30, TextUntilNul(status[:]), Rectangle.{left, y + 44.0, width, 20.0}, 12)
     half := (width - 8.0) / 2.0
     if Action(41, "Save", Rectangle.{left, y, half, 40.0}, true) {
         if SaveEdit() {
@@ -582,7 +617,6 @@ EditView :: (area: Rectangle, left: float32, width: float32) {
     }
     if !remove_pending {
         remove_pending = true
-        SetStatus("Tap the red button again to remove this account")
         return
     }
     removed := RemoveAccount(editing)
@@ -605,7 +639,6 @@ Draw :: () {
     } else {
         ListView(area, left, width)
     }
-    Label(cast(u64)30, TextUntilNul(status[:]), Rectangle.{left, area.y + area.height - 28.0, width, 20.0}, 12)
     AppKeyboard(focused != 0)
 }
 

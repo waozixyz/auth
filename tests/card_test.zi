@@ -1,0 +1,41 @@
+// Public RFC 6238 fixture only. Exercise the actual card's code cache at
+// rollover, skipped steps and a backwards clock; display spaces never enter it.
+Auth :: #import "auth";
+#import "totp"
+#import "text_buffer"
+
+#program_export
+Run :: () -> s32 {
+    display: [16]u8
+    if Auth.GroupedCode("012345", display[:]) != "012 345" ||
+    Auth.GroupedCode("0123456", display[:]) != "012 345 6" ||
+    Auth.GroupedCode("01234567", display[:]) != "012 345 67" {
+        return 1
+    }
+    account: Account
+    if !ParseLink("otpauth://totp/Fixture:alice?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", *account) {
+        return 2
+    }
+    Auth.accounts[0] = account
+    Auth.codes[0] = Auth.CachedCode.{.step = -1}
+    if Auth.Code(0, 59) != "287082" || TextUntilNul(Auth.codes[0].next[:]) != "359152" {
+        return 3
+    }
+    if Auth.Code(0, 60) != "359152" || TextUntilNul(Auth.codes[0].next[:]) != "969429" {
+        return 4
+    }
+    if Auth.Code(0, 89) != "359152" || Auth.Code(0, 150) != "254676" ||
+    Auth.Code(0, 59) != "287082" || TextUntilNul(Auth.codes[0].next[:]) != "359152" {
+        return 5
+    }
+    // Non-default periods and digits must preview the next *account* step.
+    account.period = 60
+    account.digits = 8
+    Auth.accounts[0] = account
+    Auth.codes[0] = Auth.CachedCode.{.step = -1}
+    if Auth.Code(0, 119) != "94287082" || TextUntilNul(Auth.codes[0].next[:]) != "37359152" ||
+    Auth.Code(0, 120) != "37359152" {
+        return 6
+    }
+    return 0
+}
