@@ -32,6 +32,7 @@ Run :: () -> s32 {
         return 5
     }
     // Exercise the actual row, using hosted widget/clipboard effects only.
+    area := Rectangle.{0.0, 0.0, 400.0, 320.0}
     Auth.DrawRow(0, 10.0, 20.0, 380.0, 136.0)
     if Host.button_count != 2 || Host.buttons[0].label != "Copy current code" ||
     Host.buttons[1].label != "Edit" || !Host.buttons[1].icon_only ||
@@ -44,12 +45,26 @@ Run :: () -> s32 {
         Host.button_count = 0
         Auth.DrawRow(0, 10.0, 20.0, 380.0, 136.0)
         if TextUntilNul(Host.copied[:]) != "287082" || Host.clear_seconds != Auth.CODE_CLEAR_SECONDS { return 9 }
+        Host.copy_toast = .{}
+        Auth.DrawCopyToast(area, 368.0)
+        if TextUntilNul(Host.copy_toast[:]) != "Copied to clipboard" { return 13 }
     }
     // Next preview taps still copy the CURRENT code after a period rollover.
     Host.now = 60.0
     Host.button_count = 0
     Auth.DrawRow(0, 10.0, 20.0, 380.0, 136.0)
     if TextUntilNul(Host.copied[:]) != "359152" || TextUntilNul(Host.next[:]) != "969 429" { return 10 }
+    Host.now = 61.0
+    Host.copy_toast = .{}
+    Auth.DrawCopyToast(area, 368.0)
+    if TextUntilNul(Host.copy_toast[:]) != "Copied to clipboard" { return 14 }
+    Host.now = 62.0
+    Host.clipboard_available = false
+    Host.button_count = 0
+    Auth.DrawRow(0, 10.0, 20.0, 380.0, 136.0)
+    Host.copy_toast = .{}
+    Auth.DrawCopyToast(area, 368.0)
+    if TextUntilNul(Host.copy_toast[:]) != "" { return 15 }
     Host.activated = Host.Hit(365.0, 45.0)
     if Host.activated != 6000 { return 11 }
     Host.copied = .{}

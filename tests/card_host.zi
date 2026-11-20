@@ -13,6 +13,8 @@ now: float64 = 59.0;
 copied: [16]u8;
 clear_seconds: s32;
 next: [16]u8;
+clipboard_available: bool = true;
+copy_toast: [32]u8;
 #program_export
 ButtonHostedHost :: (session: Session, props: Button.Props) -> s32 {
     if button_count < 2 { buttons[button_count] = props; button_count += 1 }
@@ -23,6 +25,7 @@ BoxHostedHost :: (session: Session, props: Box.Props) -> s32 { return 0 }
 #program_export
 TextHostedHost :: (session: Session, props: Text.Props) {
     if props.key == cast(u64)9000 { unused CopyCString(props.text, next[:]) }
+    if props.key == cast(u64)51 { unused CopyCString(props.text, copy_toast[:]) }
 }
 #program_export
 AppNowHost :: () -> float64 { return now }
@@ -30,6 +33,7 @@ AppNowHost :: () -> float64 { return now }
 AppDarkHost :: () -> bool { return true }
 #program_export
 ClipboardCopyHost :: (value: string, seconds: s32) -> bool {
+    if !clipboard_available { return false }
     unused CopyCString(value, copied[:])
     clear_seconds = seconds
     return true

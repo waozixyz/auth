@@ -25,6 +25,7 @@ ACCOUNT_LIMIT :: 128
 LIST_LIMIT :: 65536
 // Copied codes clear from the clipboard after this many seconds.
 CODE_CLEAR_SECONDS :: 30
+COPY_TOAST_SECONDS :: 2.0
 
 VIEW_LIST :: 0
 VIEW_ADD :: 1
@@ -72,6 +73,7 @@ status: [128]u8;
 editing: s32 = -1;
 remove_pending: bool;
 list_scroll: s32;
+copy_toast_until: float64;
 store: [LIST_LIMIT]u8;
 session: Session;
 
@@ -460,8 +462,9 @@ DrawRow :: (index: s32, x: float32, y: float32, inner: float32, row: float32) {
     code_width := (inner - 40.0) * 0.6
     code_bounds := Rectangle.{x + 20.0, y + 70.0, code_width, 38.0}
     if Button.Draw(session, Button.Props.{.key = cast(u64)(4000 + index), .id = 4000 + index,
-            .bounds = Rectangle.{x, y, inner, row - 8.0}, .label = "Copy current code", .invisible = true}) != 0 {
-        unused ClipboardCopy(code, CODE_CLEAR_SECONDS)
+            .bounds = Rectangle.{x, y, inner, row - 8.0}, .label = "Copy current code", .invisible = true}) != 0 &&
+    ClipboardCopy(code, CODE_CLEAR_SECONDS) {
+        copy_toast_until = now + COPY_TOAST_SECONDS
     }
     Label(cast(u64)(8000 + index), current, code_bounds, 24)
     preview := Rectangle.{x + 20.0 + code_width, y + 72.0, inner - 40.0 - code_width, 16.0}
@@ -478,6 +481,20 @@ DrawRow :: (index: s32, x: float32, y: float32, inner: float32, row: float32) {
     if Button.Draw(session, edit) != 0 {
         OpenEdit(index)
     }
+}
+
+DrawCopyToast :: (area: Rectangle, width: float32) {
+    now := AppNow()
+    if now >= copy_toast_until || now < copy_toast_until - COPY_TOAST_SECONDS {
+        copy_toast_until = 0.0
+        return
+    }
+    toast_width := ifx width < 218.0 then width else 218.0
+    bounds := Rectangle.{area.x + (area.width - toast_width) * 0.5, area.y + area.height - 56.0, toast_width, 40.0}
+    fill := ifx AppDark() then Color.{50, 47, 57, 255} else Color.{230, 223, 241, 255}
+    Box.Draw(session, Box.Props.{.key = cast(u64)50, .bounds = bounds, .fill = fill, .radius = 14.0})
+    Text.Draw(session, Text.Props.{.key = cast(u64)51, .bounds = bounds, .text = "Copied to clipboard",
+            .size = 14, .align = TextAlign.TextAlignCenter, .vertical_align = TextAlign.TextAlignCenter})
 }
 
 ListView :: (area: Rectangle, left: float32, width: float32) {
@@ -633,6 +650,11 @@ Draw :: () {
         EditView(area, left, width)
     } else {
         ListView(area, left, width)
+    }
+    if view == VIEW_LIST {
+        DrawCopyToast(area, width)
+    } else {
+        copy_toast_until = 0.0
     }
     AppKeyboard(focused != 0)
 }
